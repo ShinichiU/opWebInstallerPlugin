@@ -39,6 +39,8 @@ EOF;
 
   protected function execute($arguments = array(), $options = array())
   {
+    set_time_limit(0);
+
     $this->doInstall(
       $options['dbms'],
       $options['username'],
@@ -69,47 +71,5 @@ EOF;
     @parent::fixPerms();
     @parent::clearCache();
     parent::configureDatabase($dbms, $username, $password, $hostname, $port, $dbname, $sock, $options);
-    self::buildDb($options);
-  }
-
-  protected function buildDb($options)
-  {
-    $tmpdir = sfConfig::get('sf_data_dir').'/fixtures_tmp';
-    $this->getFilesystem()->mkdirs($tmpdir);
-    $this->getFilesystem()->remove(sfFinder::type('file')->in(array($tmpdir)));
-
-    $pluginDirs = sfFinder::type('dir')->name('data')->in(sfFinder::type('dir')->name('op*Plugin')->maxdepth(1)->in(sfConfig::get('sf_plugins_dir')));
-    $fixturesDirs = sfFinder::type('dir')->name('fixtures')
-      ->prune('migrations', 'upgrade')
-      ->in(array_merge(array(sfConfig::get('sf_data_dir')), $this->configuration->getPluginSubPaths('/data'), $pluginDirs));
-    $i = 0;
-    foreach ($fixturesDirs as $fixturesDir)
-    {
-      $files = sfFinder::type('file')->name('*.yml')->sort_by_name()->in(array($fixturesDir));
-
-      foreach ($files as $file)
-      {
-        $this->getFilesystem()->copy($file, $tmpdir.'/'.sprintf('%03d_%s_%s.yml', $i, basename($file, '.yml'), md5(uniqid(rand(), true))));
-      }
-      $i++;
-    }
-
-    $task = new sfDoctrineBuildTask($this->dispatcher, $this->formatter);
-    $task->setCommandApplication($this->commandApplication);
-    $task->setConfiguration($this->configuration);
-    $task->run(array(), array(
-      'no-confirmation' => true,
-      'db'              => true,
-      'model'           => false,
-      'forms'           => false,
-      'filters'         => false,
-      'sql'             => true,
-      'and-load'        => $tmpdir,
-      'application'     => $options['application'],
-      'env'             => $options['env'],
-    ));
-
-    $this->getFilesystem()->remove(sfFinder::type('file')->in(array($tmpdir)));
-    $this->getFilesystem()->remove($tmpdir);
   }
 }

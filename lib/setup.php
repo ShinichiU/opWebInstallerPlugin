@@ -34,8 +34,10 @@ if ($params = $requests->getParameter($form->getName()))
     chdir(sfConfig::get('sf_root_dir'));
     $sfbin = sfConfig::get('sf_root_dir').'/symfony';
     $options = ' --dbms='.$params['DBMS'].' --username='.$params['username'].' --password='.$params['password'].' --hostname='.$params['hostname'].' --port='.$params['port'].' --dbname='.$params['database'].' --sock='.$params['socket'];
-    passthru($sfbin.' openpne:webInstall'.$options, $result);
-    echo $result;
+    passthru($sfbin.' openpne:webInstall'.$options, $result1);
+    passthru($sfbin.' doctrine:insert-sql', $result2);
+    passthru($sfbin.' doctrine:data-load', $result3);
+    echo $result1."\n".$result2."\n".$result3."\n";
   }
 }
 else
@@ -43,18 +45,3 @@ else
   require_once($path.'indexSuccess.php');
 }
 exit;
-
-function cliLoader($dispatcher)
-{
-  include_once(dirname(__FILE__).'/vendor/pake/bin/pake.php');
-
-  $pake = pakeApp::get_instance();
-  try
-  {
-    $ret = $pake->run(dirname(__FILE__).'/vendor/pake/pakefile.php', 'clear-cache');
-  }
-  catch (pakeException $e)
-  {
-    print "<strong>ERROR</strong>: ".$e->getMessage();
-  }
-}
